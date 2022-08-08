@@ -1,0 +1,9 @@
+data/
+proceed/
+nebula-*
+
+*.csv
+*.json
+*.env
+
+.vscode
