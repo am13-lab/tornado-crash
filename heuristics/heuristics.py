@@ -489,19 +489,22 @@ class LinkedTransactionHeuristic(BaseHeuristic):
         self,
         deposit_df: pd.DataFrame,
         w_row: pd.DataFrame,
-        ext_df: Dict[str, Set[str]],
+        ext_dict: Dict[str, Set[str]],
     ):
         """
         1. deposit time is earlier than withdraw time
         2. deposit pool is same as withdraw pool
         3. deposit address is related to withdraw address outside Tornado Cash
         """
-        if w_row.address not in ext_df:
+        if w_row.address not in ext_dict:
             return []
         matches: pd.DataFrame = deposit_df[
             (deposit_df.ts < w_row.ts)
             & (deposit_df.tornado_cash_address == w_row.tornado_cash_address)
-            & [related_deposit in ext_df[w_row.address] for related_deposit in deposit_df.address]
+            & [
+                related_deposit in ext_dict[w_row.address]
+                for related_deposit in deposit_df.address
+            ]
         ]
         return [matches.iloc[i] for i in range(len(matches))]
 
@@ -513,7 +516,7 @@ class LinkedTransactionHeuristic(BaseHeuristic):
             """
                 USE Tornado;
                 MATCH 
-                    (v1:eoa{withdrawer:True})-[*1]-(v2:eoa{depositor:True}) 
+                    (v1:eoa{withdrawer:True})-[*..1]-(v2:eoa{depositor:True}) 
                 WHERE 
                     v1.eoa.address != v2.eoa.address
                 RETURN 
@@ -522,7 +525,7 @@ class LinkedTransactionHeuristic(BaseHeuristic):
         )
 
         # Create a mapping from address to related clusters
-        ext_df = dict(zip(ext_df["v1"], ext_df["v2"]))
+        ext_dict: Dict[str, Set[str]] = dict(zip(ext_df["v1"], ext_df["v2"]))
 
         tx2addr: Dict[str, str] = {}
         graph: nx.DiGraph = nx.DiGraph()
@@ -534,7 +537,7 @@ class LinkedTransactionHeuristic(BaseHeuristic):
                 deposit_rows: List[pd.Series] = self.__linked_tx_heuristic__(
                     deposit_df,
                     w_row,
-                    ext_df,
+                    ext_dict,
                 )
                 if len(deposit_rows) > 0:
                     tx2addr[w_row.txhash] = w_row.address
@@ -543,6 +546,6 @@ class LinkedTransactionHeuristic(BaseHeuristic):
                         graph.add_edge(w_row.txhash, d_row.txhash)
                         tx2addr[d_row.txhash] = d_row.address
         clusters: List[Set[str]] = [
-            wcc for wcc in nx.weakly_connected_components(graph) 
+            wcc for wcc in nx.weakly_connected_components(graph)
         ]
         return clusters, tx2addr
