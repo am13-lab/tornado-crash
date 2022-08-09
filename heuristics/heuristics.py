@@ -7,7 +7,10 @@ from itertools import combinations
 import pandas as pd
 import networkx as nx
 from tqdm import tqdm
-from neo4j import Neo4jDriver, BoltDriver, Transaction, Result
+
+from ioutil.reader import NebulaDataReader
+
+tqdm.pandas()
 
 
 class BaseHeuristic:
@@ -127,12 +130,12 @@ class ExactMatchHeuristic(BaseHeuristic):
     def __exact_match_heuristic__(
         self,
         deposit_df: pd.DataFrame,
-        withdraw_df: pd.DataFrame,
+        w_row: pd.DataFrame,
     ) -> Tuple[bool, Optional[List[pd.Series]]]:
         matches: pd.DataFrame = deposit_df[
-            (deposit_df.address == withdraw_df.address)
-            & (deposit_df.ts < withdraw_df.ts)
-            & (deposit_df.tornado_cash_address == withdraw_df.tornado_cash_address)
+            (deposit_df.address == w_row.address)
+            & (deposit_df.ts < w_row.ts)
+            & (deposit_df.tornado_cash_address == w_row.tornado_cash_address)
         ]
         return [matches.iloc[i] for i in range(len(matches))]
 
@@ -414,7 +417,7 @@ class SameNumTransactionHeuristic(BaseHeuristic):
 
         time_window: Timestamp = Timedelta(self._tolerence_hour, unit="hours")
         print("[{}] Precomputing deposit windows".format(self._name))
-        deposit_windows: pd.Series = deposit_df.apply(
+        deposit_windows: pd.Series = deposit_df.progress_apply(
             lambda x: deposit_df[
                 # Find all deposits earlier than current one
                 (deposit_df.ts <= x.ts)
@@ -461,29 +464,85 @@ class SameNumTransactionHeuristic(BaseHeuristic):
 
 
 class LinkedTransactionHeuristic(BaseHeuristic):
-    def __init__(self, name: str, conn: Neo4jDriver | BoltDriver, **kwargs) -> None:
-        super().__init__(name, **kwargs)
-        self.conn = conn
+    """
+    The main goal of this heuristic is to link Ethereum accounts which interacted
+    with TCash by inspecting Ethereum transactions outside it.
+    This is done constructing two sets, one corresponding to the unique TCash
+    deposit addresses and one to the unique TCash withdraw addresses, to
+    then make a query to reveal transactions between addresses of each set.
+    When a transaction between two of them is found, TCash deposit transactions
+    done by the deposit address are linked to all the TCash withdraw transactions
+    done by the withdraw address. These two sets of linked transactions are
+    filtered, leaving only the ones that make sense. For example, if a deposit
+    address A is linked to a withdraw address B, but A made a deposit to the 1
+    Eth pool and B made a withdraw to the 10 Eth pool, then this link is not
+    considered. Moreover, when considering a particular link between deposit
+    and withdraw transactions, deposits done posterior to the latest withdraw are
+    removed from the deposit set.
+    """
 
-    @staticmethod
-    def _get_link_with_n_htop(
-        tx: Transaction, deposit_addr: List[str], withdraw_addr: List[str]
-    ) -> Result:
-        query = (
-            "MATCH p=(a1:Address {address: $deposit_addr})-[*..1]->(a1:Address {address: $withdraw_addr})"
-            "RETURN p"
-        )
-        result: Result = tx.run(
-            query, deposit_addr=deposit_addr, withdraw_addr=withdraw_addr
-        )
-        return result
+    def __init__(self, name: str, nebula: NebulaDataReader) -> None:
+        super().__init__(name)
+        self.reader = nebula
+
+    def __linked_tx_heuristic__(
+        self,
+        deposit_df: pd.DataFrame,
+        w_row: pd.DataFrame,
+        ext_df: Dict[str, Set[str]],
+    ):
+        """
+        1. deposit time is earlier than withdraw time
+        2. deposit pool is same as withdraw pool
+        3. deposit address is related to withdraw address outside Tornado Cash
+        """
+        if w_row.address not in ext_df:
+            return []
+        matches: pd.DataFrame = deposit_df[
+            (deposit_df.ts < w_row.ts)
+            & (deposit_df.tornado_cash_address == w_row.tornado_cash_address)
+            & [related_deposit in ext_df[w_row.address] for related_deposit in deposit_df.address]
+        ]
+        return [matches.iloc[i] for i in range(len(matches))]
 
     def apply_heuristic(
         self, deposit_df: pd.DataFrame, withdraw_df: pd.DataFrame
     ) -> Tuple[List[Set[str]], Dict[str, str]]:
-        with self.conn.session() as sess:
-            result = sess.read_transaction(
-                self._get_link_with_n_htop,
-                deposit_df["address"].unique().tolist(),
-                withdraw_df["address"].unique().tolist(),
-            )
+        print("[{}] Fetching query result from nebula graph".format(self._name))
+        ext_df: pd.DataFrame = self.reader.read(
+            """
+                USE Tornado;
+                MATCH 
+                    (v1:eoa{withdrawer:True})-[*1]-(v2:eoa{depositor:True}) 
+                WHERE 
+                    v1.eoa.address != v2.eoa.address
+                RETURN 
+                    DISTINCT v1.eoa.address AS v1, toSet(collect(v2.eoa.address)) AS v2
+            """,
+        )
+
+        # Create a mapping from address to related clusters
+        ext_df = dict(zip(ext_df["v1"], ext_df["v2"]))
+
+        tx2addr: Dict[str, str] = {}
+        graph: nx.DiGraph = nx.DiGraph()
+
+        print("[{}] Iterate over withdraw rows".format(self._name))
+        with tqdm(total=len(withdraw_df)) as pbar:
+            for w_row in withdraw_df.itertuples():
+                pbar.update()
+                deposit_rows: List[pd.Series] = self.__linked_tx_heuristic__(
+                    deposit_df,
+                    w_row,
+                    ext_df,
+                )
+                if len(deposit_rows) > 0:
+                    tx2addr[w_row.txhash] = w_row.address
+                    for d_row in deposit_rows:
+                        graph.add_nodes_from([w_row.txhash, d_row.txhash])
+                        graph.add_edge(w_row.txhash, d_row.txhash)
+                        tx2addr[d_row.txhash] = d_row.address
+        clusters: List[Set[str]] = [
+            wcc for wcc in nx.weakly_connected_components(graph) 
+        ]
+        return clusters, tx2addr

@@ -9,6 +9,9 @@ black = "*"
 networkx = "*"
 tqdm = "*"
 multiprocesspandas = "*"
+nebula3-python = "*"
+web3 = "*"
+python-dotenv = "*"
 
 [dev-packages]
 

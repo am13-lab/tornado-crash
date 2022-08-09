@@ -7,3 +7,4 @@ nebula-*
 *.env
 
 .vscode
+__pycache__
