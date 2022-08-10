@@ -114,7 +114,26 @@
     password="nebula" or <your password>
     ```
 
-11. execute main
+11. put your csv into `data` folder
+
+    ```tree
+    📦data
+    ┣ 📂tornado_related_txs
+    ┃ ┣ 📂depositor
+    ┃ ┃ ┣ 📜depositor_2020-06-17.csv
+    ┃ ┃ ┣ 📜depositor_2021-01-01.csv
+    ┃ ┃ ┣ 📜depositor_2022-01-01.csv
+    ┃ ┃ ┗ 📜depositor_2022-06-01.csv
+    ┃ ┗ 📂withdrawer
+    ┃ ┃ ┣ 📜withdrawer_2020-06-16.csv
+    ┃ ┃ ┣ 📜withdrawer_2020-12-31.csv
+    ┃ ┃ ┣ 📜withdrawer_2021-05-31.csv
+    ┃ ┃ ┗ 📜withdrawer_2021-12-31.csv
+    ┣ 📜tornado_deposit.csv
+    ┣ 📜tornado_withdraw.csv
+    ```
+
+12. execute main
 
     ```bash
     python main.py
