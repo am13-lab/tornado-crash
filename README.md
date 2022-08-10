@@ -14,8 +14,8 @@
 
 ### tornado_related_txs/depositor(withdrawer)/*.csv
 
-|    txhash   |   from_address   | to_address | value | value | gas_price
-|  ----    | ----      | -----------| ------------------- | ---| --- |
+|    txhash   |   from_address   | to_address | value
+|  ----    | ----      | -----------| ------------------- |
 
 ## Environment Setup
 
