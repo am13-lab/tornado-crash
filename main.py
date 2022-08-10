@@ -18,7 +18,7 @@ if __name__ == "__main__":
     deposit_path = "./data/tornado_deposit.csv"
     withdraw_path = "./data/tornado_withdraw.csv"
     reader = CSVDataReader(path=[deposit_path, withdraw_path], schema=TornadoTxs)
-    deposit_df, withdraw_df = reader.read()
+    deposit_df, withdraw_df = reader.read(n_rows=90818)
 
     nebula_reader = NebulaDataReader(
         address=[(os.environ["address"], int(os.environ["port"]))],
