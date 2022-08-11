@@ -211,12 +211,12 @@ class GasPriceHeuristic(BaseHeuristic):
     def __same_gas_price_heuristic__(
         self,
         deposit_df: pd.DataFrame,
-        withdraw_df: pd.DataFrame,
+        w_row: pd.DataFrame,
     ) -> pd.Series:
         matches: pd.DataFrame = deposit_df[
-            (deposit_df.gas_price == withdraw_df.gas_price)
-            & (deposit_df.ts == withdraw_df.ts)
-            & (deposit_df.tornado_cash_address == withdraw_df.tornado_cash_address)
+            (deposit_df.gas_price == w_row.gas_price)
+            & (deposit_df.ts <= w_row.ts)
+            & (deposit_df.tornado_cash_address == w_row.tornado_cash_address)
         ]
 
         return matches.iloc[0] if len(matches) > 0 else []
