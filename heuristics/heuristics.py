@@ -255,7 +255,7 @@ class GasPriceHeuristic(BaseHeuristic):
         return clusters, tx2addr
 
 
-class SameNumTransactionHeuristic(BaseHeuristic):
+class MultipleDenominationHeuristic(BaseHeuristic):
     """
     If there are multiple (say 12) deposit transactions coming from a deposit
     address and later (within 24 hour) there are 12 withdraw transactions to the same withdraw
@@ -546,6 +546,6 @@ class LinkedTransactionHeuristic(BaseHeuristic):
                         graph.add_edge(w_row.txhash, d_row.txhash)
                         tx2addr[d_row.txhash] = d_row.address
         clusters: List[Set[str]] = [
-            wcc for wcc in nx.weakly_connected_components(graph)
+            wcc for wcc in nx.weakly_connected_components(graph) if len(wcc) > 1
         ]
         return clusters, tx2addr

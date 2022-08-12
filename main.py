@@ -4,7 +4,7 @@ from ioutil.writer import to_json
 from heuristics import (
     ExactMatchHeuristic,
     GasPriceHeuristic,
-    SameNumTransactionHeuristic,
+    MultipleDenominationHeuristic,
     LinkedTransactionHeuristic,
     Sequential,
 )
@@ -28,7 +28,7 @@ if __name__ == "__main__":
 
     hrstcs: Sequential = [
         ExactMatchHeuristic("exact_match"),
-        SameNumTransactionHeuristic("same_num_tx"),
+        MultipleDenominationHeuristic("same_num_tx"),
         GasPriceHeuristic("gas_price"),
         LinkedTransactionHeuristic("linked_tx", nebula_reader),
     ]
