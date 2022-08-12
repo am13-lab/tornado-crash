@@ -2,6 +2,7 @@ import json
 import pickle
 import numpy as np
 
+
 class JSONSetEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, set):

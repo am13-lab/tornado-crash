@@ -1,11 +1,9 @@
 from .heuristics import (
-    BaseHeuristic, 
+    BaseHeuristic,
     ExactMatchHeuristic,
     GasPriceHeuristic,
-    SameNumTransactionHeuristic,
+    MultipleDenominationHeuristic,
     LinkedTransactionHeuristic,
 )
 
-from .typings import (
-    Sequential
-)
+from .typings import Sequential
