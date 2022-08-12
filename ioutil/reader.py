@@ -175,8 +175,8 @@ class NebulaDataReader(BaseDataReader):
             for col_num in range(result.col_size()):
                 col_name = columns[col_num]
                 col_list = result.column_values(col_name)
-                d[col_name] = [x.cast() for x in col_list]
-        return pd.DataFrame.from_dict(d, columns=columns)
+                d[col_name] = [self._cast(x) for x in col_list]
+        return pd.DataFrame.from_dict(d)
 
     def _preprocess(self, raw_df: pd.DataFrame) -> pd.DataFrame:
         return raw_df
