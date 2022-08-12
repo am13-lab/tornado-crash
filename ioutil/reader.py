@@ -6,7 +6,7 @@ import pandas as pd
 from nebula3.gclient.net import ConnectionPool
 from nebula3.Config import Config
 from nebula3.data.ResultSet import ResultSet
-from nebula3.data.DataObject import ValueWrapper
+from nebula3.data.DataObject import Value, ValueWrapper
 
 
 class BaseDataReader:
@@ -123,48 +123,43 @@ class NebulaDataReader(BaseDataReader):
         self.username = username
         self.password = password
 
+        self.__as_map__ = {
+            Value.NVAL: "as_null",
+            Value.__EMPTY__: "as_empty",
+            Value.BVAL: "as_bool",
+            Value.IVAL: "as_int",
+            Value.FVAL: "as_double",
+            Value.SVAL: "as_string",
+            Value.LVAL: "as_list",
+            Value.UVAL: "as_set",
+            Value.MVAL: "as_map",
+            Value.TVAL: "as_time",
+            Value.DVAL: "as_date",
+            Value.DTVAL: "as_datetime",
+            Value.VVAL: "as_vertex",
+            Value.EVAL: "as_edge",
+            Value.PVAL: "as_path",
+            Value.GGVAL: "as_geography",
+            Value.DUVAL: "as_duration",
+        }
+
     def __enter__(self):
         return self.conn
 
     def __exit__(self):
         self.conn.close()
 
-    def _cast(self, val:ValueWrapper):
-        if val.is_empty():
-            return None
-        elif val.is_null():
-            return None
-        elif val.is_bool():
-            return val.as_bool()
-        elif val.is_int():
-            return val.as_int()
-        elif val.is_double():
-            return val.as_double()
-        elif val.is_string():
-            return val.as_string()
-        elif val.is_time():
-            return val.as_time()
-        elif val.is_date():
-            return val.as_date()
-        elif val.is_datetime():
-            return val.as_datetime()
-        elif val.is_list():
+    def _cast(self, val: ValueWrapper) -> Any:
+        _type = val._value.getType()
+        if _type in self.__as_map__:
+            return getattr(val, self.__as_map__[_type], lambda *args, **kwargs: None)()
+        elif _type == Value.LVAL:
             return [self._cast(x) for x in val.as_list()]
-        elif val.is_set():
+        elif _type == Value.UVAL:
             return {self._cast(x) for x in val.as_set()}
-        elif val.is_map():
-            return {k:self._cast(v) for k, v in val.as_map()}
-        elif val.is_vertex():
-            return val.as_node()
-        elif val.is_edge():
-            return val.as_relationship()
-        elif val.is_path():
-            return val.as_path()
-        elif val.is_geography():
-            return val.as_geography()
-        else:
-            print("ERROR: Type unsupported")
-            return None
+        elif _type == Value.MVAL:
+            return {k: self._cast(v) for k, v in val.as_map().items()}
+        raise KeyError("No such _type", _type)
 
     def _extract(
         self,
@@ -175,15 +170,13 @@ class NebulaDataReader(BaseDataReader):
             result: ResultSet = sess.execute_parameter(
                 query, params if params != None else {}
             )
-            column_name: List[str] = result.keys()
-            arr: Dict[List[Any]] = {}
-            for c_cnt in range(result.col_size()):
-                tmp: List[Any] = []
-                for r_cnt in range(result.row_size()):
-                    col = result.row_values(r_cnt)[c_cnt]
-                    tmp.append(self._cast(col))
-                arr[column_name[c_cnt]] = tmp
-        return pd.DataFrame(arr)
+            columns = result.keys()
+            d: Dict[str, list] = {}
+            for col_num in range(result.col_size()):
+                col_name = columns[col_num]
+                col_list = result.column_values(col_name)
+                d[col_name] = [x.cast() for x in col_list]
+        return pd.DataFrame.from_dict(d, columns=columns)
 
     def _preprocess(self, raw_df: pd.DataFrame) -> pd.DataFrame:
         return raw_df
