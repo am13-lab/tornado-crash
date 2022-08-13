@@ -124,8 +124,8 @@ class ExactMatchHeuristic(BaseHeuristic):
     must be removed from the anonimity set of all the other withdraw transactions.
     """
 
-    def __init__(self, name: str, **kwargs) -> None:
-        super().__init__(name, **kwargs)
+    def __init__(self, **kwargs) -> None:
+        super().__init__("exact_match", **kwargs)
 
     def __exact_match_heuristic__(
         self,
@@ -179,8 +179,8 @@ class UniqueGasPriceHeuristic(BaseHeuristic):
     can be removed from any other withdraw transaction’s anonymity set.
     """
 
-    def __init__(self, name: str, **kwargs) -> None:
-        super().__init__(name, **kwargs)
+    def __init__(self, **kwargs) -> None:
+        super().__init__("unique_gas_price", **kwargs)
 
     def __filter_by_unique_gas_price__(self, tx_df: pd.DataFrame) -> pd.DataFrame:
         """ """
@@ -265,14 +265,8 @@ class MultipleDenominationHeuristic(BaseHeuristic):
     transactions.
     """
 
-    def __init__(
-        self,
-        name: str,
-        tolerence_hour: int = 24,
-        *args,
-        **kwargs
-    ) -> None:
-        super().__init__(name)
+    def __init__(self, tolerence_hour: int = 24, *args, **kwargs) -> None:
+        super().__init__("multiple_denomination")
         self._tolerence_hour = tolerence_hour
 
     def __make_portfolio_df__(
@@ -485,8 +479,8 @@ class LinkedTransactionHeuristic(BaseHeuristic):
     removed from the deposit set.
     """
 
-    def __init__(self, name: str, reader: NebulaDataReader, *args, **kwargs) -> None:
-        super().__init__(name)
+    def __init__(self, reader: NebulaDataReader, *args, **kwargs) -> None:
+        super().__init__("linked_tx")
         self.reader = reader
 
     def __linked_tx_heuristic__(

@@ -3,7 +3,7 @@ from ioutil.reader import CSVDataReader, NebulaDataReader
 from ioutil.writer import to_json
 from heuristics import (
     ExactMatchHeuristic,
-    GasPriceHeuristic,
+    UniqueGasPriceHeuristic,
     MultipleDenominationHeuristic,
     LinkedTransactionHeuristic,
     Sequential,
@@ -27,15 +27,16 @@ if __name__ == "__main__":
     )
 
     hrstcs: Sequential = [
-        ExactMatchHeuristic("exact_match"),
-        MultipleDenominationHeuristic("same_num_tx"),
-        GasPriceHeuristic("gas_price"),
-        LinkedTransactionHeuristic("linked_tx", nebula_reader),
+        ExactMatchHeuristic(),
+        MultipleDenominationHeuristic(),
+        UniqueGasPriceHeuristic(),
+        LinkedTransactionHeuristic(nebula_reader),
     ]
 
     os.makedirs("proceed", exist_ok=True)
 
     for hrstc in hrstcs:
         df, addr_sets = hrstc.run(deposit_df, withdraw_df)
+        df = df.sort_values(["clusterID","addr"])
         df.to_csv("proceed/{}.csv".format(hrstc._name), index=False)
         to_json(addr_sets, "proceed/{}_related_addr.json".format(hrstc._name))
