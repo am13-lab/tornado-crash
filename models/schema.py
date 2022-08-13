@@ -9,5 +9,6 @@ class TornadoTxs:
     address: str = ""
     tornado_cash_address: str = ""
     value: float = ""
-    gas_price: float = ""
+    gas_price: int = ""
+    fee: int = ""
 

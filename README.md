@@ -1,16 +1,16 @@
-# De-anonymizing Tornado Cash
+# De-anonymizing Tornado Cash Classic
 
 ## Headers
 
 ### tornado_deposit.csv
 
-|    ts      |   txhash   | address | tornado_cash_address | value | gas_price
-|  ----      | ----      | -----------| ------------------- | ---| --- |
+|    ts      |   txhash   | address | tornado_cash_address | value | gas_price | fee
+|  ----      | ----      | -----------| ------------------- | ---| --- | --- |
 
 ### tornado_withdraw.csv
 
-|    ts      |   txhash   | address | tornado_cash_address | value | gas_price
-|  ----    | ----      | -----------| ------------------- | ---| --- |
+|    ts      |   txhash   | address | tornado_cash_address | value | gas_price | fee
+|  ----    | ----      | -----------| ------------------- | ---| --- | --- |
 
 ### tornado_related_txs/depositor(withdrawer)/*.csv
 
