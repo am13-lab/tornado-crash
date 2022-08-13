@@ -37,6 +37,6 @@ if __name__ == "__main__":
 
     for hrstc in hrstcs:
         df, addr_sets = hrstc.run(deposit_df, withdraw_df)
-        df = df.sort_values(["clusterID","addr"])
+        df = df.sort_values(["clusterID", "addr"])
         df.to_csv("proceed/{}.csv".format(hrstc._name), index=False)
         to_json(addr_sets, "proceed/{}_related_addr.json".format(hrstc._name))
