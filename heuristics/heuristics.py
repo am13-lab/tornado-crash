@@ -171,7 +171,7 @@ class ExactMatchHeuristic(BaseHeuristic):
         return clusters, tx2addr
 
 
-class GasPriceHeuristic(BaseHeuristic):
+class UniqueGasPriceHeuristic(BaseHeuristic):
     """
     If there is a deposit and a withdraw transaction with unique gas
     prices (e.g., 3.1415926 Gwei), then we consider the deposit and
@@ -229,6 +229,8 @@ class GasPriceHeuristic(BaseHeuristic):
         tx2addr: Dict[str, str] = {}
         graph: nx.DiGraph = nx.DiGraph()
 
+        withdraw_df = withdraw_df[withdraw_df["fee"] == 0]
+
         print("[{}] Iterate over withdraw rows".format(self._name))
         with tqdm(total=len(withdraw_df)) as pbar:
             for _, w_row in withdraw_df.iterrows():
@@ -267,6 +269,8 @@ class MultipleDenominationHeuristic(BaseHeuristic):
         self,
         name: str,
         tolerence_hour: int = 24,
+        *args,
+        **kwargs
     ) -> None:
         super().__init__(name)
         self._tolerence_hour = tolerence_hour
@@ -481,9 +485,9 @@ class LinkedTransactionHeuristic(BaseHeuristic):
     removed from the deposit set.
     """
 
-    def __init__(self, name: str, nebula: NebulaDataReader) -> None:
+    def __init__(self, name: str, reader: NebulaDataReader, *args, **kwargs) -> None:
         super().__init__(name)
-        self.reader = nebula
+        self.reader = reader
 
     def __linked_tx_heuristic__(
         self,
