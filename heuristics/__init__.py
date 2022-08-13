@@ -1,7 +1,7 @@
 from .heuristics import (
     BaseHeuristic,
     ExactMatchHeuristic,
-    GasPriceHeuristic,
+    UniqueGasPriceHeuristic,
     MultipleDenominationHeuristic,
     LinkedTransactionHeuristic,
 )
