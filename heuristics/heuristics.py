@@ -394,7 +394,7 @@ class MultipleDenominationHeuristic(BaseHeuristic):
 
         deposit_addrs: List[str] = list(set(deposit_addrs))
 
-        privacy_score: float = 1.0 - 1.0 / len(matched_deposits)
+        # privacy_score: float = 1.0 - 1.0 / len(matched_deposits)
         response_dict: Dict[str, Any] = dict(
             withdraw_txs=withdraw_txs,
             deposit_txs=deposit_txs,
@@ -402,7 +402,7 @@ class MultipleDenominationHeuristic(BaseHeuristic):
             deposit_addrs=deposit_addrs,
             withdraw_tx2addr=withdraw_tx2addr,
             deposit_tx2addr=deposit_tx2addr,
-            privacy_score=privacy_score,
+            # privacy_score=privacy_score,
         )
         return response_dict
 
@@ -513,11 +513,11 @@ class LinkedTransactionHeuristic(BaseHeuristic):
         ext_df: pd.DataFrame = self.reader.read(
             """
                 USE Tornado;
-                MATCH 
-                    (v1:eoa{withdrawer:True})-[*..1]-(v2:eoa{depositor:True}) 
-                WHERE 
+                MATCH
+                    (v1:eoa{withdrawer:True})-[*..1]-(v2:eoa{depositor:True})
+                WHERE
                     v1.eoa.address != v2.eoa.address
-                RETURN 
+                RETURN
                     DISTINCT v1.eoa.address AS v1, toSet(collect(v2.eoa.address)) AS v2
             """,
         )
