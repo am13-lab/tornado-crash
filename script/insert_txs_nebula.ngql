@@ -1,18 +1,23 @@
 # create graph space
-CREATE SPACE `Tornado` (vid_type = INT64);
+CREATE SPACE `Tornado` (vid_type = FIXED_STRING(42));
 
 # create node
-CREATE TAG IF NOT EXISTS eoa(address string, depositor bool, withdrawer bool ); // depositor / withdrawer
+CREATE TAG IF NOT EXISTS eoa(depositor bool, withdrawer bool ); // depositor / withdrawer
 
 # create edge
 CREATE EDGE IF NOT EXISTS tx(txhash string, value float);
 
 # create index
-CREATE TAG INDEX IF NOT EXISTS address on eoa(address(42))
+CREATE TAG INDEX IF NOT EXISTS eoa_index on eoa()
 CREATE TAG INDEX IF NOT EXISTS depositor on eoa(depositor)
 CREATE TAG INDEX IF NOT EXISTS withdrawer on eoa(withdrawer)
 CREATE EDGE INDEX IF NOT EXISTS tx_index on tx()
 
 # REBUILD <type> INDEX <index name>
 
-MATCH (v1:eoa{depositor:True})-[*..1]-(v2:eoa{withdrawer:True}) WHERE v1!=v2 RETURN v1.eoa.address, v2.eoa.address
+MATCH
+    (v1:eoa{withdrawer:True})-[*..1]-(v2:eoa{depositor:True})
+WHERE
+    v1.eoa.address != v2.eoa.address
+RETURN
+    DISTINCT v1.eoa.address AS v1, toSet(collect(v2.eoa.address)) AS v2

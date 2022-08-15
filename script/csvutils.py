@@ -62,14 +62,12 @@ def _build_vertex_and_edge(
 
     # A mapping from address to its unique index
     unique_addr = series.unique()
-    addr2idx = {addr: idx for idx, addr in enumerate(unique_addr)}
 
     deposit_addr_set = set(tornado_deposit_df["address"].unique())
     withdraw_addr_set = set(tornado_withdraw_df["address"].unique())
 
     vertex = pd.DataFrame.from_dict(
         {
-            "vid": [addr2idx[x] for x in unique_addr],
             "address": unique_addr,
             "depositor": [
                 True if x in deposit_addr_set else False for x in unique_addr
@@ -80,8 +78,6 @@ def _build_vertex_and_edge(
         }
     )
 
-    df["from_address"] = df["from_address"].apply(lambda x: addr2idx[x])
-    df["to_address"] = df["to_address"].apply(lambda x: addr2idx[x])
     relation_transfer = df[["from_address", "to_address", "txhash", "value"]]
 
     return vertex, relation_transfer
